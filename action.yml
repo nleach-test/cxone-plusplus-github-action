@@ -1,0 +1,232 @@
+name: 'Checkmarx One++ GitHub Action'
+description: 'Orchestrates vulnerability scanning and issue tracker item lifecycle.'
+author: 'Nathan Leach, Principal Solutions Architect, Checkmarx'
+
+inputs:
+  base-uri:
+    required: false
+    default: https://ast.checkmarx.net
+    description: The CxOne server base URL, default is the US1 environment. https://checkmarx.com/resource/documents/en/34965-68630-configure.html#UUID-494287f8-3019-2542-c111-cb147c286bac_id_ASTCLIConfigurationEnvironmentVariables-CLIConfigurationParameters
+  base-auth-uri:
+    required: false
+    default: https://iam.checkmarx.net
+    description: The CxOne server base URL, default is the US1 environment. https://checkmarx.com/resource/documents/en/34965-68630-configure.html#UUID-494287f8-3019-2542-c111-cb147c286bac_id_ASTCLIConfigurationEnvironmentVariables-CLIConfigurationParameters
+  cx-tenant:
+    required: true
+    description: The CxOne tenant identifier.
+  cx-client-id:
+    required: true
+    description: OAuth Client ID for API access
+  cx-client-secret:
+    required: true
+    description: OAuth client secret key for API access
+  project-name:
+    required: false
+    default: ${{ github.repository }}
+    description: Scan project name
+  additional-scan-params:
+    required: false
+    default: ''
+    description: Additional parameters passed to the CxOne CLI after "scan create"
+
+  cx-cli-debug:
+    default: false
+    description: Turn on debugging for the CxOne CLI and the composite action.
+  cx-cli-agent:
+    default: 'cxonepp-gh-action'
+    description: The agent name to use when performing CxOne CLI commands.  This value will show as the "Scan Origin" of each scan.
+
+  cx-cli-additional-params:
+    default: ''
+    description: Additional parameters to pass to the CxOne CLI (proxy settings, etc) for all CxOne CLI invocations.
+
+  container-image:
+    required: true
+    description: The container tag that was made with the cx-supply-chain-toolkit.
+
+  docker-login-registry:
+    default: docker.io
+    description: The name of the container registry to use for login.
+  docker-login-username:
+    default: ''
+    description: The username for the container registry login.
+  docker-login-password:
+    default: ''
+    description: The password for the container registry login.
+
+  upload-sarif-file:
+    default: true
+    description: If true, uploads the Sarif file to create entries on the GitHub security tab during push events. 
+  attach-sarif-file:
+    default: false
+    description: If true, attaches the Sarif file to the workflow as an artifact for push or pull request events.
+
+  additional-report-params:
+    default: ''
+    description: Additional parameters used when compiling reports. Do not add the --filter option; use the "report-filters" input parameter to set filter options.
+
+  report-filters:
+    default: --filter "state=TO_VERIFY;PROPOSED_NOT_EXPLOITABLE;CONFIRMED;URGENT"
+    description: The criteria that selects what to include in any report results.
+
+  attach-sbom-file:
+    default: false
+    description: If true, attaches the SBOM file to the workflow as an artifact. 
+  sbom-standard:
+    default: CycloneDxJson
+    description: The SBOM standard format used when generating the SBOM file. 
+
+  show-versions:
+    default: true
+    description: If true, emits the versions of the CxOne CLI and SCA Resolver in the action log.
+
+  container-run-command:
+    default: 'docker run'
+    description: The command used to execute the container.
+  container-run-command-params:
+    default: "-t --rm -v ${GITHUB_WORKSPACE}:/sandbox/input:ro -v $(realpath ${GITHUB_WORKSPACE}/../output):/sandbox/output"
+    description: The command used to execute the container.
+
+outputs:
+  scan-id:
+    description: The ID of the scan executed
+    value: ${{ steps.get-identifiers.outputs.scan-id}}
+
+  project-id:
+    description: The ID of the project where the scan was executed
+    value: ${{ steps.get-identifiers.outputs.project-id}}
+  
+  project-deeplink:
+    description: A link directly to the project overview for the project where the scan was executed.
+    value: ${{ steps.get-identifiers.outputs.project-deeplink }}
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Container Registry Login
+      uses: docker/login-action@v2
+      if: inputs.docker-login-username != '' && inputs.docker-login-password != ''
+      with:
+        registry: ${{ inputs.docker-login-registry }}
+        username: ${{ inputs.docker-login-username }}
+        password: ${{ inputs.docker-login-password }}
+
+    - name: Setup working environment
+      shell: bash
+      run: |
+        [ "${{ inputs.cx-cli-debug }}" == "true" ] && CXONECLI_DEBUG_FLAG='--debug' || :
+        echo "DOCKER_RUN=${{ inputs.container-run-command }} ${{ inputs.container-run-command-params }}" >> "$GITHUB_ENV"
+        echo "CXONE_CLI_GLOBAL_PARAMS=$CXONECLI_DEBUG_FLAG ${{ inputs.cx-cli-additional-params }} --agent \"${{ inputs.cx-cli-agent }}\" --client-id \"${{ inputs.cx-client-id }}\" --client-secret \"${{ inputs.cx-client-secret }}\" --tenant \"${{ inputs.cx-tenant }}\" --base-uri ${{ inputs.base-uri }} --base-auth-uri ${{ inputs.base-auth-uri }}" >> "$GITHUB_ENV"
+        echo "CXONE_CLI_SCAN_PARAMS=${{ inputs.additional-scan-params }} --project-name \"${{ inputs.project-name }}\" --branch \"${{ github.ref_name }}\" --sca-resolver /sandbox/resolver/ScaResolver --output-path /sandbox/output -s /sandbox/input_sandbox --report-format summaryJSON" >> "$GITHUB_ENV"
+        echo "CXONE_OUTPATH=$(realpath ${GITHUB_WORKSPACE}/../output)" >> "$GITHUB_ENV"
+        echo "CXONE_CLI_REPORT_PARAMS=${{ inputs.additional-report-params }} --output-path /sandbox/output" >> "$GITHUB_ENV"
+        mkdir $(realpath ${GITHUB_WORKSPACE}/../output)
+        chmod g+w $(realpath ${GITHUB_WORKSPACE}/../output)
+
+    - name: Container Registry Login
+      uses: docker/login-action@v2
+      if: inputs.docker-login-username != '' && inputs.docker-login-password != ''
+      with:
+        registry: ${{ inputs.docker-login-registry }}
+        username: ${{ inputs.docker-login-username }}
+        password: ${{ inputs.docker-login-password }}
+
+    - name: Pull Container
+      shell: bash
+      run: docker pull ${{ inputs.container-image}} > /dev/null
+
+    - name: Show Versions
+      if: ${{ inputs.show-versions == 'true' }}
+      shell: bash
+      run: |
+        ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} --version | cat -v | sed -E 's/.*(CxSCA Resolver.[0-9.]+)\^M$/\1/g'
+        echo CxOne CLI $(${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone version)
+
+    - name: Container Debug Validation
+      if: ${{ inputs.cx-cli-debug == 'true' }}
+      shell: bash
+      run: |
+        echo IF GITHUB UID/GID DO NOT MATCH CONTAINER UID/GID, WRITING TO VOLUME MAPS MAY FAIL
+
+        echo GITHUB USER UID: $(id -u)
+        echo CONTAINER USER UID: $(${{ env.DOCKER_RUN }} --entrypoint /bin/bsh ${{ inputs.container-image}} -c 'id -u')
+
+        echo GITHUB USER EFFECTIVE GROUPS: $(id -G)
+        echo CONTAINER USER EFFECTIVE GROUPS: $(${{ env.DOCKER_RUN }} --entrypoint /bin/bsh ${{ inputs.container-image}} -c 'id -G')
+
+        echo TESTING WRITE CAPABILITY ON OUTPUT
+        ${{ env.DOCKER_RUN }} --entrypoint /bin/bsh ${{ inputs.container-image}} -c 'touch /sandbox/output/write'
+        [ -f "${{ env.CXONE_OUTPATH }}/write" ] && rm "${{ env.CXONE_OUTPATH }}/write" || exit 1
+
+        echo TESTING WRITE DENIED ON INPUT
+        set +e
+        ${{ env.DOCKER_RUN }} --entrypoint /bin/bsh ${{ inputs.container-image}} -c 'touch /sandbox/input/write'
+        RESULT=$?
+        [ $RESULT -eq 0 ] && exit 1 || :
+
+
+    - name: Execute Scan
+      shell: bash
+      run: ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone scan create ${{ env.CXONE_CLI_SCAN_PARAMS }} ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+
+    - name: Collect Output Identifiers
+      id: get-identifiers
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        if [ -f "${{ env.CXONE_OUTPATH }}/cx_result.json" ]; then
+          SCAN_ID=$(jq -Mr .ScanID ${{ env.CXONE_OUTPATH }}/cx_result.json)
+          PROJECT_ID=$(jq -Mr .ProjectID ${{ env.CXONE_OUTPATH }}/cx_result.json)
+          echo "SCAN_ID=$SCAN_ID" >> "$GITHUB_ENV"
+          echo "PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+          echo "project-id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          echo "scan-id=$SCAN_ID" >> "$GITHUB_OUTPUT"
+          echo "project-deeplink=${{ inputs.base-uri }}/projects/$PROJECT_ID/overview?branch=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
+          rm ${{ env.CXONE_OUTPATH }}/cx_result.json
+        fi
+
+    - name: PR Decorations
+      if: ${{ always() && github.event_name == 'pull_request' && env.SCAN_ID != '' }}
+      shell: bash
+      run: |
+        ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone utils pr github --scan-id "${{ env.SCAN_ID }}" --namespace "${{ github.repository_owner }}" --repo-name "${{ github.event.repository.name }}" --pr-number "${{ github.event.number }}" --token "${{ github.token }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+
+    - name: Sarif Report Generation
+      if: ${{ env.SCAN_ID != '' && ( (inputs.upload-sarif-file == 'true' && github.event_name == 'push') || inputs.attach-sarif-file == 'true' ) }}
+      shell: bash
+      run: |
+        ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone results show ${{ env.CXONE_CLI_REPORT_PARAMS }} ${{ inputs.report-filters }} --report-format sarif --scan-id "${{ env.SCAN_ID }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+        cp ${{ env.CXONE_OUTPATH }}/cx_result.sarif ${GITHUB_WORKSPACE}
+
+    - name: Sarif Report Attach as Artifact
+      if: ${{ env.SCAN_ID != '' && inputs.attach-sarif-file == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: cx_result.sarif
+        path: ${{ env.CXONE_OUTPATH }}/cx_result.sarif
+
+    - name: Sarif Report Upload on Push
+      if: ${{ env.SCAN_ID != '' && github.event_name == 'push' && inputs.upload-sarif-file == 'true' }}
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: cx_result.sarif
+        category: Checkmarx
+      
+    - name: SBOM Report Generation
+      if: ${{ env.SCAN_ID != '' && inputs.attach-sbom-file == 'true' }}
+      shell: bash
+      run: |
+          ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone results show ${{ env.CXONE_CLI_REPORT_PARAMS }} ${{ inputs.report-filters }} --report-format SBOM --report-sbom-format ${{ inputs.sbom-standard }} --scan-id "${{ env.SCAN_ID }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+
+    - name: SBOM Report Attach as Artifact
+      if: ${{ env.SCAN_ID != '' && inputs.attach-sbom-file == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: cx_result_sbom.json
+        path: ${{ env.CXONE_OUTPATH }}/cx_result_sbom.json
+
+
+branding:
+  color: 'green'
+  icon: 'layers'
