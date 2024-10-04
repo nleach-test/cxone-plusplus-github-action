@@ -211,7 +211,7 @@ runs:
           echo CxOne CLI Version: $($CLI_EXEC_CMD version)
 
           # Resolver validates irrelevant parameters.
-          # $RESOLVER_EXEC_CMD && : || :
+          $RESOLVER_EXEC_CMD && : || :
 
     # - name: Container Debug Validation
     #   if: ${{ inputs.cx-cli-debug == 'true' }}
