@@ -163,22 +163,22 @@ runs:
       if: inputs.build-container-tag == '' 
       run: |
         : Setup Local CLI Execution
-        
+
         echo TODO
         env
 
 
-    - name: Setup working environment
-      shell: bash
-      run: |
-        [ "${{ inputs.cx-cli-debug }}" == "true" ] && CXONECLI_DEBUG_FLAG='--debug' || :
-#        # echo "DOCKER_RUN=${{ inputs.container-run-command }} ${{ inputs.container-run-command-params }}" >> "$GITHUB_ENV"
-        echo "CXONE_CLI_GLOBAL_PARAMS=$CXONECLI_DEBUG_FLAG ${{ inputs.cx-cli-additional-params }} --agent \"${{ inputs.cx-cli-agent }}\" --client-id \"${{ inputs.cx-client-id }}\" --client-secret \"${{ inputs.cx-client-secret }}\" --tenant \"${{ inputs.cx-tenant }}\" --base-uri ${{ inputs.base-uri }} --base-auth-uri ${{ inputs.base-auth-uri }}" >> "$GITHUB_ENV"
-        echo "CXONE_CLI_SCAN_PARAMS=${{ inputs.additional-scan-params }} --project-name \"${{ inputs.project-name }}\" --branch \"${{ github.ref_name }}\" --sca-resolver /sandbox/resolver/ScaResolver --output-path /sandbox/output -s /sandbox/input_sandbox --report-format summaryJSON" >> "$GITHUB_ENV"
-        echo "CXONE_OUTPATH=$(realpath ${GITHUB_WORKSPACE}/../output)" >> "$GITHUB_ENV"
-#        # echo "CXONE_CLI_REPORT_PARAMS=${{ inputs.additional-report-params }} --output-path /sandbox/output" >> "$GITHUB_ENV"
-        mkdir $(realpath ${GITHUB_WORKSPACE}/../output)
-        chmod g+w $(realpath ${GITHUB_WORKSPACE}/../output)
+    # - name: Setup working environment
+    #   shell: bash
+    #   run: |
+    #     [ "${{ inputs.cx-cli-debug }}" == "true" ] && CXONECLI_DEBUG_FLAG='--debug' || :
+    #     echo "DOCKER_RUN=${{ inputs.container-run-command }} ${{ inputs.container-run-command-params }}" >> "$GITHUB_ENV"
+    #     echo "CXONE_CLI_GLOBAL_PARAMS=$CXONECLI_DEBUG_FLAG ${{ inputs.cx-cli-additional-params }} --agent \"${{ inputs.cx-cli-agent }}\" --client-id \"${{ inputs.cx-client-id }}\" --client-secret \"${{ inputs.cx-client-secret }}\" --tenant \"${{ inputs.cx-tenant }}\" --base-uri ${{ inputs.base-uri }} --base-auth-uri ${{ inputs.base-auth-uri }}" >> "$GITHUB_ENV"
+    #     echo "CXONE_CLI_SCAN_PARAMS=${{ inputs.additional-scan-params }} --project-name \"${{ inputs.project-name }}\" --branch \"${{ github.ref_name }}\" --sca-resolver /sandbox/resolver/ScaResolver --output-path /sandbox/output -s /sandbox/input_sandbox --report-format summaryJSON" >> "$GITHUB_ENV"
+    #     echo "CXONE_OUTPATH=$(realpath ${GITHUB_WORKSPACE}/../output)" >> "$GITHUB_ENV"
+    #     echo "CXONE_CLI_REPORT_PARAMS=${{ inputs.additional-report-params }} --output-path /sandbox/output" >> "$GITHUB_ENV"
+    #     mkdir $(realpath ${GITHUB_WORKSPACE}/../output)
+    #     chmod g+w $(realpath ${GITHUB_WORKSPACE}/../output)
 
 
     # - name: Pull Container
