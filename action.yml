@@ -206,8 +206,8 @@ runs:
       shell: bash
       run: |
           : Show Versions
-          $CLI_EXEC_CMD version
-          $RESOLVER_EXEC_CMD
+          echo CxOne CLI Version: $($CLI_EXEC_CMD version)
+          $RESOLVER_EXEC_CMD -s ${{ env.CLI_INPUT_PATH }}
 
     # - name: Container Debug Validation
     #   if: ${{ inputs.cx-cli-debug == 'true' }}
