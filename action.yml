@@ -167,8 +167,8 @@ runs:
       run: |
         : Setup Local CLI Execution
 
-        ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --cxonecli -o ${{ env.CLI_PATH }}
-        ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --resolver -o ${{ env.RESOLVER_PATH }}
+        java -jar ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --cxonecli -o ${{ env.CLI_PATH }}
+        java -jar ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --resolver -o ${{ env.RESOLVER_PATH }}
 
         ls -l ${{ env.RESOLVER_PATH }}
         ls -l ${{ env.CLI_PATH }}
