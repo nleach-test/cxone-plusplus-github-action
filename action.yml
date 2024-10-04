@@ -207,11 +207,11 @@ runs:
       run: |
           : Show Versions
           # Make it create the directory on first run
-          $CLI_EXEC_CMD version > /dev/null 2>&1
-          echo CxOne CLI Version: $($CLI_EXEC_CMD version)
+          ${{ env.CLI_EXEC_CMD }} version > /dev/null 2>&1
+          echo CxOne CLI Version: $(${{ env.CLI_EXEC_CMD }} version)
 
           # Resolver validates irrelevant parameters.
-          echo SCA Resolver $($RESOLVER_EXEC_CMD | grep ^Version && : || :)
+          echo SCA Resolver $(${{ env.RESOLVER_EXEC_CMD }} | grep ^Version && : || :)
 
     # - name: Container Debug Validation
     #   if: ${{ inputs.cx-cli-debug == 'true' }}
@@ -236,9 +236,10 @@ runs:
     #     [ $RESULT -eq 0 ] && exit 1 || :
 
 
-    # - name: Execute Scan
-    #   shell: bash
-    #   run: ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone scan create ${{ env.CXONE_CLI_SCAN_PARAMS }} ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+    - name: Execute Scan
+      shell: bash
+      run: |
+        ${{ env.CLI_EXEC_CMD }} scan create ${{ env.CXONE_CLI_SCAN_PARAMS }} ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
 
     # - name: Collect Output Identifiers
     #   id: get-identifiers
