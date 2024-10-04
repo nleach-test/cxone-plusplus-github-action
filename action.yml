@@ -181,10 +181,7 @@ runs:
         echo "CLI_INPUT_PATH=$(pwd)" >> "$GITHUB_ENV"
         echo "CLI_EXEC_CMD=${{ env.CLI_PATH }}/cx" >> "$GITHUB_ENV"
         echo "RESOLVER_EXEC_CMD=${{ env.RESOLVER_PATH }}/ScaResolver" >> "$GITHUB_ENV"
-
-        ls -lR
-        ls -lR ${{ env.CLI_INPUT_PATH }}
-        
+       
 
 
     - name: Setup working environment
