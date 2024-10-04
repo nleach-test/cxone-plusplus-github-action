@@ -114,6 +114,9 @@ runs:
         RESOLVER=$(mktemp -d -p "$GITHUB_ACTION_PATH")
         echo "RESOLVER_PATH=$RESOLVER" >> "$GITHUB_ENV"
 
+        CLI=$(mktemp -d -p "$GITHUB_ACTION_PATH")
+        echo "CLI_PATH=$CLI" >> "$GITHUB_ENV"
+
         TOOLKIT=$(mktemp -d -p "$GITHUB_ACTION_PATH")
         echo "TOOLKIT_PATH=$TOOLKIT" >> "$GITHUB_ENV"
 
@@ -164,9 +167,11 @@ runs:
       run: |
         : Setup Local CLI Execution
 
-        echo TODO
-        env
+        ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --cxonecli -o ${{ env.CLI_PATH }}
+        ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --resolver -o ${{ env.RESOLVER_PATH }}
 
+        ls -l ${{ env.RESOLVER_PATH }}
+        ls -l ${{ env.CLI_PATH }}
 
     # - name: Setup working environment
     #   shell: bash
@@ -281,6 +286,7 @@ runs:
         : Cleanup temp directories
 
         [ -d ${{ env.RESOLVER_PATH }} ] && rm -rf ${{ env.RESOLVER_PATH }} || :
+        [ -d ${{ env.CLI_PATH }} ] && rm -rf ${{ env.CLI_PATH }} || :
         [ -d ${{ env.TOOLKIT_PATH }} ] && rm -rf ${{ env.TOOLKIT_PATH }} || :
         [ -d ${{ env.PSCICDTOOLS_PATH }} ] && rm -rf ${{ env.PSCICDTOOLS_PATH }} || :
 
