@@ -182,8 +182,8 @@ runs:
         echo "CLI_EXEC_CMD=${{ env.CLI_PATH }}/cx" >> "$GITHUB_ENV"
         echo "RESOLVER_EXEC_CMD=${{ env.RESOLVER_PATH }}/ScaResolver" >> "$GITHUB_ENV"
 
-        ls -l
-        ls -l ${{ env.CLI_INPUT_PATH }}
+        ls -lR
+        ls -lR ${{ env.CLI_INPUT_PATH }}
         
 
 
