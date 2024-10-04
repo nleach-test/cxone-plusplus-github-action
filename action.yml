@@ -117,6 +117,9 @@ runs:
         CLI=$(mktemp -d -p "$GITHUB_ACTION_PATH")
         echo "CLI_PATH=$CLI" >> "$GITHUB_ENV"
 
+        OUT_PATH=$(mktemp -d -p "$GITHUB_ACTION_PATH")
+        echo "OUTPUT_PATH=$OUT_PATH" >> "$GITHUB_ENV"
+
         TOOLKIT=$(mktemp -d -p "$GITHUB_ACTION_PATH")
         echo "TOOLKIT_PATH=$TOOLKIT" >> "$GITHUB_ENV"
 
@@ -158,7 +161,11 @@ runs:
       if: inputs.build-container-tag != '' 
       run: |
         : Setup CLI Execution via Container
-      
+        echo "CLI_RESOLVER_PATH=/sandbox/resolver/ScaResolver" >> "$GITHUB_ENV"
+        echo "CLI_OUTPUT_PATH=/sandbox/output" >> "$GITHUB_ENV"
+        echo "CLI_INPUT_PATH=/sandbox/input_sandbox" >> "$GITHUB_ENV"
+        # echo "CLI_EXEC_CMD=${{ env.CLI_PATH }}/cx" >> "$GITHUB_ENV"
+        # echo "RESOLVER_EXEC_CMD=${{ env.RESOLVER_PATH }}/ScaResolver" >> "$GITHUB_ENV"
         echo TODO
         env
 
@@ -169,33 +176,38 @@ runs:
 
         java -jar ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --cxonecli -o ${{ env.CLI_PATH }}
         java -jar ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --resolver -o ${{ env.RESOLVER_PATH }}
+        echo "CLI_RESOLVER_PATH=${{ env.RESOLVER_PATH }}" >> "$GITHUB_ENV"
+        echo "CLI_OUTPUT_PATH=${{ env.OUTPUT_PATH }}" >> "$GITHUB_ENV"
+        echo "CLI_INPUT_PATH=$(pwd)" >> "$GITHUB_ENV"
+        echo "CLI_EXEC_CMD=${{ env.CLI_PATH }}/cx" >> "$GITHUB_ENV"
+        echo "RESOLVER_EXEC_CMD=${{ env.RESOLVER_PATH }}/ScaResolver" >> "$GITHUB_ENV"
+        
 
-        ls -l ${{ env.RESOLVER_PATH }}
-        ls -l ${{ env.CLI_PATH }}
 
-    # - name: Setup working environment
-    #   shell: bash
-    #   run: |
-    #     [ "${{ inputs.cx-cli-debug }}" == "true" ] && CXONECLI_DEBUG_FLAG='--debug' || :
-    #     echo "DOCKER_RUN=${{ inputs.container-run-command }} ${{ inputs.container-run-command-params }}" >> "$GITHUB_ENV"
-    #     echo "CXONE_CLI_GLOBAL_PARAMS=$CXONECLI_DEBUG_FLAG ${{ inputs.cx-cli-additional-params }} --agent \"${{ inputs.cx-cli-agent }}\" --client-id \"${{ inputs.cx-client-id }}\" --client-secret \"${{ inputs.cx-client-secret }}\" --tenant \"${{ inputs.cx-tenant }}\" --base-uri ${{ inputs.base-uri }} --base-auth-uri ${{ inputs.base-auth-uri }}" >> "$GITHUB_ENV"
-    #     echo "CXONE_CLI_SCAN_PARAMS=${{ inputs.additional-scan-params }} --project-name \"${{ inputs.project-name }}\" --branch \"${{ github.ref_name }}\" --sca-resolver /sandbox/resolver/ScaResolver --output-path /sandbox/output -s /sandbox/input_sandbox --report-format summaryJSON" >> "$GITHUB_ENV"
-    #     echo "CXONE_OUTPATH=$(realpath ${GITHUB_WORKSPACE}/../output)" >> "$GITHUB_ENV"
-    #     echo "CXONE_CLI_REPORT_PARAMS=${{ inputs.additional-report-params }} --output-path /sandbox/output" >> "$GITHUB_ENV"
-    #     mkdir $(realpath ${GITHUB_WORKSPACE}/../output)
-    #     chmod g+w $(realpath ${GITHUB_WORKSPACE}/../output)
+    - name: Setup working environment
+      shell: bash
+      run: |
+        [ "${{ inputs.cx-cli-debug }}" == "true" ] && CXONECLI_DEBUG_FLAG='--debug' || :
+        # echo "DOCKER_RUN=${{ inputs.container-run-command }} ${{ inputs.container-run-command-params }}" >> "$GITHUB_ENV"
+        echo "CXONE_CLI_GLOBAL_PARAMS=$CXONECLI_DEBUG_FLAG ${{ inputs.cx-cli-additional-params }} --agent \"${{ inputs.cx-cli-agent }}\" --client-id \"${{ inputs.cx-client-id }}\" --client-secret \"${{ inputs.cx-client-secret }}\" --tenant \"${{ inputs.cx-tenant }}\" --base-uri ${{ inputs.base-uri }} --base-auth-uri ${{ inputs.base-auth-uri }}" >> "$GITHUB_ENV"
+        echo "CXONE_CLI_SCAN_PARAMS=${{ inputs.additional-scan-params }} --project-name \"${{ inputs.project-name }}\" --branch \"${{ github.ref_name }}\" --sca-resolver ${{ env.CLI_RESOLVER_PATH }} --output-path ${{ env.CLI_OUTPUT_PATH }} -s ${{ env.CLI_INPUT_PATH }} --report-format summaryJSON" >> "$GITHUB_ENV"
+        # echo "CXONE_OUTPATH=$(realpath ${GITHUB_WORKSPACE}/../output)" >> "$GITHUB_ENV"
+        echo "CXONE_CLI_REPORT_PARAMS=${{ inputs.additional-report-params }} --output-path ${{ env.CLI_OUTPUT_PATH }}" >> "$GITHUB_ENV"
+        # mkdir $(realpath ${GITHUB_WORKSPACE}/../output)
+        # chmod g+w $(realpath ${GITHUB_WORKSPACE}/../output)
 
 
     # - name: Pull Container
     #   shell: bash
     #   run: docker pull ${{ inputs.container-image}} > /dev/null
 
-    # - name: Show Versions
-    #   if: ${{ inputs.show-versions == 'true' }}
-    #   shell: bash
-    #   run: |
-    #     ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} --version | cat -v | sed -E 's/.*(CxSCA Resolver.[0-9.]+)\^M$/\1/g'
-    #     echo CxOne CLI $(${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone version)
+    - name: 
+      if: ${{ inputs.show-versions == 'true' }}
+      shell: bash
+      run: |
+          : Show Versions
+          $CLI_EXEC_CMD version
+          $RESOLVER_EXEC_CMD
 
     # - name: Container Debug Validation
     #   if: ${{ inputs.cx-cli-debug == 'true' }}
@@ -287,6 +299,7 @@ runs:
 
         [ -d ${{ env.RESOLVER_PATH }} ] && rm -rf ${{ env.RESOLVER_PATH }} || :
         [ -d ${{ env.CLI_PATH }} ] && rm -rf ${{ env.CLI_PATH }} || :
+        [ -d ${{ env.OUTPUT_PATH }} ] && rm -rf ${{ env.OUTPUT_PATH }} || :
         [ -d ${{ env.TOOLKIT_PATH }} ] && rm -rf ${{ env.TOOLKIT_PATH }} || :
         [ -d ${{ env.PSCICDTOOLS_PATH }} ] && rm -rf ${{ env.PSCICDTOOLS_PATH }} || :
 
