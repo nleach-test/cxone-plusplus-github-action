@@ -176,7 +176,7 @@ runs:
 
         java -jar ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --cxonecli -o ${{ env.CLI_PATH }}
         java -jar ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar --resolver -o ${{ env.RESOLVER_PATH }}
-        echo "CLI_RESOLVER_PATH=${{ env.RESOLVER_PATH }}" >> "$GITHUB_ENV"
+        echo "CLI_RESOLVER_PATH=${{ env.RESOLVER_PATH }}/ScaResolver" >> "$GITHUB_ENV"
         echo "CLI_OUTPUT_PATH=${{ env.OUTPUT_PATH }}" >> "$GITHUB_ENV"
         echo "CLI_INPUT_PATH=$(pwd)" >> "$GITHUB_ENV"
         echo "CLI_EXEC_CMD=${{ env.CLI_PATH }}/cx" >> "$GITHUB_ENV"
