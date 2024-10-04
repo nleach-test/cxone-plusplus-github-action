@@ -207,11 +207,11 @@ runs:
       run: |
           : Show Versions
           # Make it create the directory on first run
-          $($CLI_EXEC_CMD version) > /dev/null 2>&1
+          $CLI_EXEC_CMD version > /dev/null 2>&1
           echo CxOne CLI Version: $($CLI_EXEC_CMD version)
 
           # Resolver validates irrelevant parameters.
-          $RESOLVER_EXEC_CMD && : || :
+          # $RESOLVER_EXEC_CMD && : || :
 
     # - name: Container Debug Validation
     #   if: ${{ inputs.cx-cli-debug == 'true' }}
