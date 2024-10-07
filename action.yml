@@ -172,8 +172,8 @@ runs:
         echo "CLI_RESOLVER_PATH=/sandbox/resolver/ScaResolver" >> "$GITHUB_ENV"
         echo "CLI_OUTPUT_PATH=/sandbox/output" >> "$GITHUB_ENV"
         echo "CLI_INPUT_PATH=/sandbox/input_sandbox" >> "$GITHUB_ENV"
-        echo "RESOLVER_EXEC_CMD=docker run -t --rm -v ${GITHUB_WORKSPACE}:/sandbox/input:ro -v ${{ env.OUT_PATH }}:/sandbox/output ${{ env.EXT_IMAGE }}" >> "$GITHUB_ENV"
-        echo "CLI_EXEC_CMD=docker run -t --rm -v ${GITHUB_WORKSPACE}:/sandbox/input:ro -v ${{ env.OUT_PATH }}:/sandbox/output ${{ env.EXT_IMAGE }} cxone" >> "$GITHUB_ENV"
+        echo "RESOLVER_EXEC_CMD=docker run -t --rm -v ${GITHUB_WORKSPACE}:/sandbox/input:ro -v ${{ env.OUTPUT_PATH }}:/sandbox/output ${{ env.EXT_IMAGE }}" >> "$GITHUB_ENV"
+        echo "CLI_EXEC_CMD=docker run -t --rm -v ${GITHUB_WORKSPACE}:/sandbox/input:ro -v ${{ env.OUTPUT_PATH }}:/sandbox/output ${{ env.EXT_IMAGE }} cxone" >> "$GITHUB_ENV"
 
     - shell: bash
       if: inputs.build-container-tag == ''
