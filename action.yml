@@ -206,14 +206,8 @@ runs:
     - shell: bash
       run: |
         : Execute Scan
-
         ${{ env.CLI_EXEC_CMD }} scan create ${{ env.CXONE_CLI_SCAN_PARAMS }} ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
        
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: cx_result.json
-        path: ${{ env.OUTPUT_PATH }}/cx_result.json
 
     # - name: Collect Output Identifiers
     #   id: get-identifiers
