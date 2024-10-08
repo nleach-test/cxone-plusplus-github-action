@@ -239,6 +239,8 @@ runs:
       shell: bash
       run: |
         : PR Decoration
+        [ "${{ inputs.cx-cli-debug }}" == "true" ] && echo "THIS REQUIRES WORKFLOW PERMISSIONS 'pull-requests: write' AND 'statuses: write' " || :
+
         ${{ env.CLI_EXEC_CMD }} utils pr github --scan-id "${{ env.SCAN_ID }}" --namespace "${{ github.repository_owner }}" --repo-name "${{ github.event.repository.name }}" --pr-number "${{ github.event.number }}" --token "${{ github.token }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
 
     - name: Sarif Report Generation
@@ -246,6 +248,9 @@ runs:
       shell: bash
       run: |
         : Sarif Report Generation
+
+        [ "${{ inputs.cx-cli-debug }}" == "true" ] && echo "UPLOADING SARIF OUTPUT TO CODEQL REQUIRES WORKFLOW PERMISSIONS 'security-events: write'" || :
+
         ${{ env.CLI_EXEC_CMD }} results show ${{ env.CXONE_CLI_REPORT_PARAMS }} ${{ inputs.report-filters }} --report-format sarif --scan-id "${{ env.SCAN_ID }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
         cp ${{ env.OUTPUT_PATH }}/cx_result.sarif ${GITHUB_WORKSPACE}
 
