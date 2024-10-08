@@ -218,14 +218,14 @@ runs:
         : Collect Output Identifiers
         if [ -f "${{ env.OUTPUT_PATH }}/cx_result.json" ]; then
 
-          SCAN_ID=$(${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.ScanID')
-          PROJECT_ID=$(${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.ProjectID')
+          SCAN_ID=$(java -jar ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.ScanID')
+          PROJECT_ID=$(java -jar ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.ProjectID')
           echo "SCAN_ID=$SCAN_ID" >> "$GITHUB_ENV"
           echo "PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
          
           echo "project-id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "scan-id=$SCAN_ID" >> "$GITHUB_OUTPUT"
-          echo "project-deeplink=$(${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.BaseURI')" >> "$GITHUB_OUTPUT"
+          echo "project-deeplink=$(java -jar ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.BaseURI')" >> "$GITHUB_OUTPUT"
           
           rm ${{ env.OUTPUT_PATH }}/cx_result.json
         fi
