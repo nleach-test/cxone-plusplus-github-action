@@ -41,8 +41,8 @@ inputs:
     description: Additional parameters to pass to the CxOne CLI (proxy settings, etc) for all CxOne CLI invocations.
 
   build-container-tag:
-    required: true
-    description: The container tag for the build environment where SCA Resolver is to execute.
+    required: false
+    description: The container tag for the build environment where the scan will execute. If not provided, the scan executes in the runner.
 
   docker-login-registry:
     default: docker.io
