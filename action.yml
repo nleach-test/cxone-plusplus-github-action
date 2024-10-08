@@ -134,6 +134,8 @@ runs:
         : Download PS CI/CD Tools https://github.com/checkmarx-ts/ps-cicd-tools
 
         wget -q -O ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar https://github.com/checkmarx-ts/ps-cicd-tools/releases/latest/download/archive-downloader.jar
+        # wget -q -O ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar https://github.com/checkmarx-ts/ps-cicd-tools/releases/latest/download/jsonpath-query.jar
+        wget -q -O ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar https://github.com/checkmarx-ts/ps-cicd-tools/releases/download/1.0.4-6-prerelease/jsonpath-query.jar
 
 
     - shell: bash
@@ -209,61 +211,65 @@ runs:
         ${{ env.CLI_EXEC_CMD }} scan create ${{ env.CXONE_CLI_SCAN_PARAMS }} ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
        
 
-    # - name: Collect Output Identifiers
-    #   id: get-identifiers
-    #   if: ${{ always() }}
-    #   shell: bash
-    #   run: |
-    #     if [ -f "${{ env.CXONE_OUTPATH }}/cx_result.json" ]; then
-    #       SCAN_ID=$(jq -Mr .ScanID ${{ env.CXONE_OUTPATH }}/cx_result.json)
-    #       PROJECT_ID=$(jq -Mr .ProjectID ${{ env.CXONE_OUTPATH }}/cx_result.json)
-    #       echo "SCAN_ID=$SCAN_ID" >> "$GITHUB_ENV"
-    #       echo "PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
-    #       echo "project-id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
-    #       echo "scan-id=$SCAN_ID" >> "$GITHUB_OUTPUT"
-    #       echo "project-deeplink=${{ inputs.base-uri }}/projects/$PROJECT_ID/overview?branch=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
-    #       rm ${{ env.CXONE_OUTPATH }}/cx_result.json
-    #     fi
+    - id: get-identifiers
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        : Collect Output Identifiers
+        if [ -f "${{ env.OUTPUT_PATH }}/cx_result.json" ]; then
 
-    # - name: PR Decorations
-    #   if: ${{ always() && github.event_name == 'pull_request' && env.SCAN_ID != '' }}
-    #   shell: bash
-    #   run: |
-    #     ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone utils pr github --scan-id "${{ env.SCAN_ID }}" --namespace "${{ github.repository_owner }}" --repo-name "${{ github.event.repository.name }}" --pr-number "${{ github.event.number }}" --token "${{ github.token }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+          SCAN_ID=$(${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.ScanID')
+          PROJECT_ID=$(${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.ProjectID')
+          echo "SCAN_ID=$SCAN_ID" >> "$GITHUB_ENV"
+          echo "PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+         
+          echo "project-id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          echo "scan-id=$SCAN_ID" >> "$GITHUB_OUTPUT"
+          echo "project-deeplink=$(${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar -f ${{ env.OUTPUT_PATH }}/cx_result.json -q '$.BaseURI')" >> "$GITHUB_OUTPUT"
+          
+          rm ${{ env.OUTPUT_PATH }}/cx_result.json
+        fi
 
-    # - name: Sarif Report Generation
-    #   if: ${{ env.SCAN_ID != '' && ( (inputs.upload-sarif-file == 'true' && github.event_name == 'push') || inputs.attach-sarif-file == 'true' ) }}
-    #   shell: bash
-    #   run: |
-    #     ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone results show ${{ env.CXONE_CLI_REPORT_PARAMS }} ${{ inputs.report-filters }} --report-format sarif --scan-id "${{ env.SCAN_ID }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
-    #     cp ${{ env.CXONE_OUTPATH }}/cx_result.sarif ${GITHUB_WORKSPACE}
+    - if: ${{ always() && github.event_name == 'pull_request' && env.SCAN_ID != '' }}
+      shell: bash
+      run: |
+        : PR Decoration
+        ${{ env.CLI_EXEC_CMD }} utils pr github --scan-id "${{ env.SCAN_ID }}" --namespace "${{ github.repository_owner }}" --repo-name "${{ github.event.repository.name }}" --pr-number "${{ github.event.number }}" --token "${{ github.token }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
 
-    # - name: Sarif Report Attach as Artifact
-    #   if: ${{ env.SCAN_ID != '' && inputs.attach-sarif-file == 'true' }}
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: cx_result.sarif
-    #     path: ${{ env.CXONE_OUTPATH }}/cx_result.sarif
+    - name: Sarif Report Generation
+      if: ${{ env.SCAN_ID != '' && ( (inputs.upload-sarif-file == 'true' && github.event_name == 'push') || inputs.attach-sarif-file == 'true' ) }}
+      shell: bash
+      run: |
+        : Sarif Report Generation
+        ${{ env.CLI_EXEC_CMD }} results show ${{ env.CXONE_CLI_REPORT_PARAMS }} ${{ inputs.report-filters }} --report-format sarif --scan-id "${{ env.SCAN_ID }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+        cp ${{ env.OUTPUT_PATH }}/cx_result.sarif ${GITHUB_WORKSPACE}
 
-    # - name: Sarif Report Upload on Push
-    #   if: ${{ env.SCAN_ID != '' && github.event_name == 'push' && inputs.upload-sarif-file == 'true' }}
-    #   uses: github/codeql-action/upload-sarif@v2
-    #   with:
-    #     sarif_file: cx_result.sarif
-    #     category: Checkmarx
+    - name: Sarif Report Attach as Artifact
+      if: ${{ env.SCAN_ID != '' && inputs.attach-sarif-file == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: cx_result.sarif
+        path: ${{ env.OUTPUT_PATH }}/cx_result.sarif
+
+    - name: Sarif Report Upload on Push
+      if: ${{ env.SCAN_ID != '' && github.event_name == 'push' && inputs.upload-sarif-file == 'true' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ env.OUTPUT_PATH }}/cx_result.sarif
+        category: Checkmarx
       
-    # - name: SBOM Report Generation
-    #   if: ${{ env.SCAN_ID != '' && inputs.attach-sbom-file == 'true' }}
-    #   shell: bash
-    #   run: |
-    #       ${{ env.DOCKER_RUN }} ${{ inputs.container-image}} cxone results show ${{ env.CXONE_CLI_REPORT_PARAMS }} ${{ inputs.report-filters }} --report-format SBOM --report-sbom-format ${{ inputs.sbom-standard }} --scan-id "${{ env.SCAN_ID }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
+    - if: ${{ env.SCAN_ID != '' && inputs.attach-sbom-file == 'true' }}
+      shell: bash
+      run: |
+          : SBOM Report Generation
+          ${{ env.CLI_EXEC_CMD }} results show ${{ env.CXONE_CLI_REPORT_PARAMS }} ${{ inputs.report-filters }} --report-format SBOM --report-sbom-format ${{ inputs.sbom-standard }} --scan-id "${{ env.SCAN_ID }}" ${{ env.CXONE_CLI_GLOBAL_PARAMS }}
 
-    # - name: SBOM Report Attach as Artifact
-    #   if: ${{ env.SCAN_ID != '' && inputs.attach-sbom-file == 'true' }}
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: cx_result_sbom.json
-    #     path: ${{ env.CXONE_OUTPATH }}/cx_result_sbom.json
+    - name: SBOM Report Attach as Artifact
+      if: ${{ env.SCAN_ID != '' && inputs.attach-sbom-file == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: cx_result_sbom.json
+        path: ${{ env.OUTPUT_PATH }}/cx_result_sbom.json
 
     - if: always()
       shell: bash
