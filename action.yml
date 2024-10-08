@@ -134,8 +134,7 @@ runs:
         : Download PS CI/CD Tools https://github.com/checkmarx-ts/ps-cicd-tools
 
         wget -q -O ${{ env.PSCICDTOOLS_PATH }}/archive-downloader.jar https://github.com/checkmarx-ts/ps-cicd-tools/releases/latest/download/archive-downloader.jar
-        # wget -q -O ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar https://github.com/checkmarx-ts/ps-cicd-tools/releases/latest/download/jsonpath-query.jar
-        wget -q -O ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar https://github.com/checkmarx-ts/ps-cicd-tools/releases/download/1.0.4-6-prerelease/jsonpath-query.jar
+        wget -q -O ${{ env.PSCICDTOOLS_PATH }}/jsonpath-query.jar https://github.com/checkmarx-ts/ps-cicd-tools/releases/latest/download/jsonpath-query.jar
 
 
     - shell: bash
